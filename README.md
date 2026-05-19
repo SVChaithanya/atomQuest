@@ -1,65 +1,47 @@
-# AtomQuest Goal Management System
+📌 AtomQuest Goal Management System
 
-A modern performance and goal tracking platform built using FastAPI.
+A scalable goal tracking and performance management platform built with FastAPI and modern backend architecture principles.
 
-## Features
-
-- JWT Authentication
-- Role Based Access
-  - Admin
-  - Manager
-  - Employee
-- Goal Creation & Tracking
-- Quarterly Progress Updates
-- Goal Approval Workflow
-- Manager Check-ins
-- Active Performance Cycles
-- Weightage Validation
-- Team Goal Monitoring
-
----
-
-## Tech Stack
-
-### Backend
-- FastAPI
-- SQLAlchemy
-- SQLite
-- JWT Authentication
-
-### Frontend
-- React.js
-- Tailwind CSS
-
----
-
-## API Modules
-
-### Authentication
-- Register
-- Login
-- Current User
-
-### Goals
-- Create Goal
-- Update Goal
-- My Goals
-
-### Manager
-- Team Goals
-- Approve / Reject Goals
-- Manager Check-ins
-
-### Admin
-- All Users
-- All Goals
-- Create Cycles
-
----
-
-## Project Structure
-
-```bash
+🚀 Key Features
+Secure JWT-based Authentication
+Role-Based Access Control (RBAC)
+Admin
+Manager
+Employee
+Goal Creation, Assignment & Tracking
+Quarterly Performance Updates
+Goal Approval Workflow (Manager-driven)
+Manager Check-ins for progress review
+Active Performance Cycle Management
+Goal Weightage Validation System
+Team-level Performance Monitoring
+🧱 Tech Stack
+Backend
+FastAPI (Python)
+SQLAlchemy ORM
+SQLite (development)
+JWT Authentication
+Frontend
+React.js
+Tailwind CSS
+🔌 API Modules
+🔐 Authentication
+Register User
+Login User
+Get Current User
+🎯 Goals
+Create Goal
+Update Goal
+Fetch My Goals
+👨‍💼 Manager Operations
+View Team Goals
+Approve / Reject Goals
+Conduct Check-ins
+🛠 Admin Operations
+Manage Users
+Manage All Goals
+Create & Manage Cycles
+📁 Project Structure
 atomQuest/
 │
 ├── main.py
@@ -72,64 +54,28 @@ atomQuest/
 ├── Dockerfile
 ├── docker-compose.yml
 └── README.md
-```
-
----
-
-## Run Locally
-
-### Create Virtual Environment
-
-```bash
+⚙️ Local Setup Instructions
+1. Create Virtual Environment
 python -m venv venv
-```
+2. Activate Environment
 
-### Activate Environment
+Windows
 
-#### Windows
-
-```bash
 venv\Scripts\activate
-```
 
-#### Linux / Mac
+Linux / Mac
 
-```bash
 source venv/bin/activate
-```
-
----
-
-### Install Dependencies
-
-```bash
+3. Install Dependencies
 pip install -r requirements.txt
-```
-
----
-
-### Run Server
-
-```bash
+4. Run Application
 uvicorn main:app --reload
-```
 
-Server runs on:
+Application will be available at:
 
-```bash
 http://127.0.0.1:8000
-```
-
----
-
-## Docker Run
-
-```bash
+🐳 Docker Deployment
 docker-compose up --build
-```
-
----
-
-## Author
+👨‍💻 Author
 
 Surya Yaramati
