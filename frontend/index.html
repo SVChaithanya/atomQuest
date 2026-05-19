@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AtomQuest — Performance OS</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&family=Fraunces:ital,wght@0,300;0,600;0,900;1,300;1,600&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:        #0a0b0e;
+  --bg2:       #0f1114;
+  --bg3:       #141519;
+  --bg4:       #1a1c22;
+  --line:      #1e2029;
+  --line2:     #252830;
+  --ink:       #e9eaf0;
+  --ink2:      #7c8190;
+  --ink3:      #3e4250;
+  --lime:      #b8ff57;
+  --lime-d:    rgba(184,255,87,.07);
+  --lime-g:    rgba(184,255,87,.15);
+  --amber:     #ffb547;
+  --amber-d:   rgba(255,181,71,.07);
+  --sky:       #57c4ff;
+  --sky-d:     rgba(87,196,255,.07);
+  --rose:      #ff6b6b;
+  --rose-d:    rgba(255,107,107,.07);
+  --violet:    #c084fc;
+  --violet-d:  rgba(192,132,252,.07);
+  --ok:        #4ade80;
+  --ok-d:      rgba(74,222,128,.07);
+  --r4:        4px;
+  --r8:        8px;
+  --r12:       12px;
+  --t:         .18s cubic-bezier(.4,0,.2,1);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{font-size:14px;scroll-behavior:smooth;}
+body{
+  font-family:'Syne',sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+/* noise overlay */
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  opacity:.4;
+}
+/* accent glow corners */
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 55% 35% at 100% 0%,   rgba(184,255,87,.05) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 30% at 0%   100%,  rgba(87,196,255,.04) 0%, transparent 55%);
+}
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-track{background:var(--bg2);}
+::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px;}
+/* ────────────────────────────────────────────
+   UTILITIES
+───────────────────────────────────────────── */
+.mono{font-family:'DM Mono',monospace;}
+.serif{font-family:'Fraunces',serif;}
+/* ────────────────────────────────────────────
+   AUTH
+───────────────────────────────────────────── */
+#auth{
+  position:fixed;inset:0;z-index:500;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg);
+}
+.auth-card{
+  display:flex;width:860px;height:560px;
+  border:1px solid var(--line2);border-radius:16px;overflow:hidden;
+  box-shadow:0 40px 100px rgba(0,0,0,.7);
+  animation:up .35s ease;
+}
+.auth-side{
+  width:310px;flex-shrink:0;
+  background:linear-gradient(160deg,#111318 0%,#0a0c0f 100%);
+  border-right:1px solid var(--line2);
+  padding:44px 32px;
+  display:flex;flex-direction:column;justify-content:space-between;
+}
+.auth-wordmark{
+  font-family:'Fraunces',serif;font-size:2.6rem;font-weight:900;
+  color:var(--lime);line-height:.9;letter-spacing:-1px;
+}
+.auth-sub{
+  font-family:'DM Mono',monospace;font-size:.62rem;
+  letter-spacing:3px;color:var(--ink3);text-transform:uppercase;margin-top:8px;
+}
+.auth-copy{
+  font-size:.82rem;color:var(--ink2);line-height:1.8;
+}
+.auth-copy strong{color:var(--lime);font-weight:600;}
+.demo-section{display:flex;flex-direction:column;gap:7px;}
+.demo-tag{font-family:'DM Mono',monospace;font-size:.58rem;color:var(--ink3);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;}
+.dbtn{
+  padding:7px 14px;border-radius:var(--r4);font-size:.7rem;font-weight:700;
+  cursor:pointer;border:1px solid;transition:var(--t);letter-spacing:.5px;
+  font-family:'Syne',sans-serif;text-align:center;
+}
+.dbtn-emp{background:var(--violet-d);color:var(--violet);border-color:rgba(192,132,252,.25);}
+.dbtn-mgr{background:var(--sky-d);color:var(--sky);border-color:rgba(87,196,255,.25);}
+.dbtn-adm{background:var(--amber-d);color:var(--amber);border-color:rgba(255,181,71,.25);}
+.dbtn:hover{filter:brightness(1.2);transform:translateX(3px);}
+.auth-body{
+  flex:1;background:var(--bg2);padding:36px 32px;overflow-y:auto;
+}
+.tab-row{
+  display:flex;gap:0;margin-bottom:28px;
+  border:1px solid var(--line2);border-radius:var(--r8);padding:3px;
+  background:var(--bg);width:fit-content;
+}
+.tab{
+  padding:7px 22px;background:transparent;border:none;border-radius:6px;
+  color:var(--ink3);font-family:'Syne',sans-serif;font-weight:700;font-size:.77rem;
+  cursor:pointer;transition:var(--t);letter-spacing:.3px;
+}
+.tab.on{background:var(--lime);color:#0a0b0e;}
+label{
+  display:block;font-family:'DM Mono',monospace;font-size:.6rem;
+  color:var(--ink3);letter-spacing:1.8px;text-transform:uppercase;margin-bottom:5px;
+}
+input,select,textarea{
+  width:100%;padding:9px 12px;
+  background:var(--bg3);border:1px solid var(--line2);
+  border-radius:var(--r8);color:var(--ink);
+  font-family:'Syne',sans-serif;font-size:.85rem;
+  transition:var(--t);outline:none;margin-bottom:12px;
+}
+input:focus,select:focus,textarea:focus{
+  border-color:var(--lime);box-shadow:0 0 0 3px var(--lime-g);
+}
+select option{background:var(--bg3);}
+textarea{min-height:70px;resize:vertical;}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.fgrid .fg{display:flex;flex-direction:column;}
+.span2{grid-column:1/-1;}
+.btn{
+  padding:9px 22px;background:var(--lime);color:#0a0b0e;
+  border:none;border-radius:var(--r8);
+  font-family:'Syne',sans-serif;font-weight:800;font-size:.75rem;
+  letter-spacing:.6px;text-transform:uppercase;cursor:pointer;
+  transition:var(--t);display:inline-flex;align-items:center;gap:7px;
+}
+.btn:hover{filter:brightness(1.1);transform:translateY(-1px);}
+.btn:active{transform:none;filter:none;}
+.btn-full{width:100%;justify-content:center;}
+.btn-ghost{background:transparent;color:var(--ink2);border:1px solid var(--line2);}
+.btn-ghost:hover{border-color:var(--lime);color:var(--lime);background:transparent;filter:none;transform:none;}
+.btn-sm{padding:5px 13px;font-size:.68rem;}
+.btn-ok{background:var(--ok-d);color:var(--ok);border:1px solid rgba(74,222,128,.25);}
+.btn-ok:hover{background:rgba(74,222,128,.14);filter:none;transform:none;}
+.btn-bad{background:var(--rose-d);color:var(--rose);border:1px solid rgba(255,107,107,.25);}
+.btn-bad:hover{background:rgba(255,107,107,.14);filter:none;transform:none;}
+.err{color:var(--rose);font-size:.73rem;margin-top:6px;min-height:15px;font-family:'DM Mono',monospace;}
+/* ────────────────────────────────────────────
+   DEMO BAR
+───────────────────────────────────────────── */
+#dbar{
+  position:fixed;top:0;left:0;right:0;z-index:600;
+  background:rgba(10,11,14,.92);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line2);
+  padding:6px 18px;
+  display:none;align-items:center;gap:9px;flex-wrap:wrap;
+}
+.dbar-lbl{font-family:'DM Mono',monospace;font-size:.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--lime);}
+.dbar-sep{color:var(--ink3);}
+/* ────────────────────────────────────────────
+   APP SHELL
+───────────────────────────────────────────── */
+#app{display:none;position:relative;z-index:1;min-height:100vh;}
+#app.dm{padding-top:36px;}
+#app.dm .sidebar{top:36px;}
+/* ────────────────────────────────────────────
+   SIDEBAR
+───────────────────────────────────────────── */
+.sidebar{
+  position:fixed;left:0;top:0;bottom:0;width:230px;
+  background:var(--bg2);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;z-index:50;
+}
+.sb-top{
+  padding:22px 18px 18px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:11px;
+}
+.sb-mark{
+  width:34px;height:34px;border-radius:7px;
+  background:var(--lime);color:#0a0b0e;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Fraunces',serif;font-weight:900;font-size:1rem;
+  flex-shrink:0;
+}
+.sb-wm{font-family:'Fraunces',serif;font-size:1.3rem;font-weight:900;letter-spacing:-0.5px;}
+.sb-wm em{color:var(--lime);font-style:normal;}
+.nav-sec{padding:10px 8px;border-bottom:1px solid var(--line);}
+.nav-lbl{
+  font-family:'DM Mono',monospace;font-size:.55rem;
+  letter-spacing:2.5px;text-transform:uppercase;color:var(--ink3);
+  padding:0 9px;margin-bottom:6px;font-weight:500;
+}
+.nav-item{
+  display:flex;align-items:center;gap:9px;
+  padding:8px 9px;border-radius:6px;
+  color:var(--ink3);font-size:.82rem;font-weight:600;
+  cursor:pointer;transition:var(--t);border:none;
+  background:transparent;width:100%;text-align:left;font-family:'Syne',sans-serif;
+}
+.nav-item:hover{color:var(--ink);background:var(--bg3);}
+.nav-item.on{color:var(--lime);background:var(--lime-d);}
+.ni{width:14px;height:14px;flex-shrink:0;opacity:.6;}
+.nav-item.on .ni{opacity:1;}
+.sb-footer{
+  margin-top:auto;padding:14px 15px;border-top:1px solid var(--line);
+  display:flex;align-items:center;gap:9px;
+}
+.u-av{
+  width:32px;height:32px;border-radius:50%;
+  background:var(--lime);color:#0a0b0e;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:.8rem;flex-shrink:0;
+}
+.u-meta{flex:1;min-width:0;}
+.u-name{font-size:.8rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.u-role{font-family:'DM Mono',monospace;font-size:.55rem;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+.r-employee{color:var(--violet);}
+.r-manager{color:var(--sky);}
+.r-admin{color:var(--amber);}
+.sb-logout{
+  background:none;border:none;cursor:pointer;
+  color:var(--ink3);padding:5px;border-radius:5px;transition:var(--t);display:flex;
+}
+.sb-logout:hover{color:var(--rose);background:var(--rose-d);}
+/* ────────────────────────────────────────────
+   MAIN
+───────────────────────────────────────────── */
+.main{margin-left:230px;padding:28px 32px;min-height:100vh;}
+.page{display:none;animation:up .2s ease;}
+.page.on{display:block;}
+.page-hd{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  margin-bottom:24px;
+}
+.page-title{
+  font-family:'Fraunces',serif;font-size:2.4rem;font-weight:900;
+  letter-spacing:-1px;line-height:.95;
+}
+.page-title em{color:var(--lime);font-style:italic;}
+.page-sub{color:var(--ink3);font-family:'DM Mono',monospace;font-size:.64rem;letter-spacing:1px;margin-top:7px;text-transform:uppercase;}
+/* ────────────────────────────────────────────
+   STATS
+───────────────────────────────────────────── */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.scard{
+  background:var(--bg2);border:1px solid var(--line);border-radius:var(--r12);
+  padding:18px 20px;position:relative;overflow:hidden;
+}
+.scard::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+}
+.sc1::after{background:var(--lime);}
+.sc2::after{background:var(--amber);}
+.sc3::after{background:var(--rose);}
+.sc4::after{background:var(--sky);}
+.scard-lbl{font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);margin-bottom:9px;}
+.scard-val{font-family:'Fraunces',serif;font-size:2.5rem;font-weight:900;line-height:1;letter-spacing:-1px;}
+.scard-note{font-family:'DM Mono',monospace;font-size:.6rem;color:var(--ink3);margin-top:6px;}
+/* ────────────────────────────────────────────
+   CARDS
+───────────────────────────────────────────── */
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r12);padding:20px 22px;}
+.card-title{
+  font-weight:700;font-size:.85rem;color:var(--ink);margin-bottom:16px;
+  display:flex;align-items:center;gap:8px;
+}
+.ctag{
+  display:inline-block;width:5px;height:5px;border-radius:50%;flex-shrink:0;
+}
+.two-up{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+/* ────────────────────────────────────────────
+   GOAL CARDS
+───────────────────────────────────────────── */
+.goal-card{
+  background:var(--bg3);border:1px solid var(--line);border-radius:var(--r8);
+  padding:14px 16px;display:flex;align-items:flex-start;gap:12px;
+  transition:var(--t);margin-bottom:8px;
+}
+.goal-card:hover{border-color:var(--line2);}
+.g-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:7px;}
+.g-body{flex:1;min-width:0;}
+.g-title{font-weight:700;font-size:.87rem;margin-bottom:3px;}
+.g-desc{font-size:.75rem;color:var(--ink2);margin-bottom:8px;line-height:1.5;}
+.chips{display:flex;flex-wrap:wrap;gap:5px;align-items:center;}
+.chip{
+  font-family:'DM Mono',monospace;font-size:.6rem;padding:2px 7px;
+  border-radius:20px;border:1px solid var(--line2);color:var(--ink3);
+  background:var(--bg2);font-weight:500;
+}
+.ch-lime{background:var(--lime-d);border-color:rgba(184,255,87,.2);color:var(--lime);}
+.ch-sky{background:var(--sky-d);border-color:rgba(87,196,255,.2);color:var(--sky);}
+.ch-amber{background:var(--amber-d);border-color:rgba(255,181,71,.2);color:var(--amber);}
+.ch-ok{background:var(--ok-d);border-color:rgba(74,222,128,.2);color:var(--ok);}
+.ch-pen{background:var(--violet-d);border-color:rgba(192,132,252,.2);color:var(--violet);}
+.ch-rej{background:var(--rose-d);border-color:rgba(255,107,107,.2);color:var(--rose);}
+/* progress bar */
+.pg{margin-top:9px;}
+.pg-row{display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--ink3);margin-bottom:3px;}
+.pg-track{height:2px;background:var(--line);border-radius:10px;overflow:hidden;}
+.pg-fill{height:100%;border-radius:10px;background:var(--lime);transition:width .7s;}
+/* weight bar */
+.wbar{
+  display:flex;align-items:center;gap:14px;
+  padding:12px 16px;background:var(--bg3);border:1px solid var(--line);
+  border-radius:var(--r8);margin-bottom:14px;
+}
+.wbar-lbl{font-family:'DM Mono',monospace;font-size:.6rem;color:var(--ink3);white-space:nowrap;}
+.wbar-val{font-family:'Fraunces',serif;font-size:1.4rem;font-weight:900;letter-spacing:-0.5px;}
+.wbar-track{flex:1;height:3px;background:var(--line);border-radius:10px;overflow:hidden;}
+.wbar-fill{height:100%;border-radius:10px;transition:width .5s;}
+/* ────────────────────────────────────────────
+   TABLE
+───────────────────────────────────────────── */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:.82rem;}
+th{
+  text-align:left;padding:8px 12px;
+  font-family:'DM Mono',monospace;font-size:.58rem;
+  letter-spacing:2px;color:var(--ink3);text-transform:uppercase;
+  border-bottom:1px solid var(--line);font-weight:500;
+}
+td{padding:11px 12px;border-bottom:1px solid rgba(30,32,41,.7);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.01);}
+.badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 8px;border-radius:20px;font-family:'DM Mono',monospace;font-size:.6rem;font-weight:500;
+}
+.bdot{width:5px;height:5px;border-radius:50%;}
+.b-on{background:var(--ok-d);color:var(--ok);}
+.b-off{background:rgba(62,66,80,.2);color:var(--ink3);}
+/* ────────────────────────────────────────────
+   ADMIN GRID
+───────────────────────────────────────────── */
+.admin-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.acard{
+  background:var(--bg2);border:1px solid var(--line);border-radius:var(--r12);
+  padding:20px 22px;
+}
+.acard-ico{font-size:1.4rem;margin-bottom:10px;}
+.acard-val{font-family:'Fraunces',serif;font-size:2.2rem;font-weight:900;letter-spacing:-1px;line-height:1;}
+.acard-lbl{font-family:'DM Mono',monospace;font-size:.58rem;color:var(--ink3);letter-spacing:1.8px;text-transform:uppercase;margin-top:5px;}
+/* ────────────────────────────────────────────
+   MODAL
+───────────────────────────────────────────── */
+.overlay{
+  position:fixed;inset:0;z-index:400;
+  background:rgba(0,0,0,.8);backdrop-filter:blur(6px);
+  display:none;align-items:center;justify-content:center;
+}
+.overlay.open{display:flex;}
+.modal{
+  background:var(--bg2);border:1px solid var(--line2);border-radius:14px;
+  padding:28px;width:520px;max-height:90vh;overflow-y:auto;
+  position:relative;animation:up .2s ease;
+}
+.modal-title{
+  font-family:'Fraunces',serif;font-size:1.5rem;font-weight:900;
+  color:var(--lime);margin-bottom:22px;letter-spacing:-0.5px;
+}
+.mfooter{display:flex;gap:9px;margin-top:18px;}
+.mfooter .btn{flex:1;justify-content:center;}
+.closex{
+  position:absolute;top:14px;right:14px;
+  background:none;border:none;color:var(--ink3);cursor:pointer;
+  font-size:.9rem;padding:5px 7px;border-radius:5px;transition:var(--t);
+}
+.closex:hover{color:var(--ink);background:var(--bg3);}
+/* ────────────────────────────────────────────
+   TOAST
+───────────────────────────────────────────── */
+#toast{position:fixed;bottom:22px;right:22px;z-index:9999;display:flex;flex-direction:column;gap:7px;}
+.ti{
+  display:flex;align-items:center;gap:9px;
+  padding:10px 16px;border-radius:var(--r8);font-size:.78rem;min-width:220px;
+  background:var(--bg3);border:1px solid var(--line2);
+  animation:up .2s ease;box-shadow:0 10px 30px rgba(0,0,0,.5);
+  font-family:'DM Mono',monospace;
+}
+.ti.ok{border-color:rgba(74,222,128,.25);}
+.ti.er{border-color:rgba(255,107,107,.25);}
+.tdot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+/* ────────────────────────────────────────────
+   HIGHLIGHT BAR
+───────────────────────────────────────────── */
+.hbar{
+  background:linear-gradient(90deg,rgba(184,255,87,.05),rgba(87,196,255,.04));
+  border:1px solid rgba(184,255,87,.1);border-radius:var(--r8);
+  padding:12px 18px;display:flex;align-items:center;gap:12px;margin-bottom:20px;
+}
+.hbar-ico{font-size:1.1rem;}
+.hbar-txt{font-size:.77rem;color:var(--ink2);line-height:1.6;}
+.hbar-txt strong{color:var(--ink);}
+/* ────────────────────────────────────────────
+   EMPTY
+───────────────────────────────────────────── */
+.empty{text-align:center;padding:40px 20px;color:var(--ink3);}
+.empty-ico{font-size:2rem;margin-bottom:9px;opacity:.25;}
+.empty p{font-family:'DM Mono',monospace;font-size:.72rem;}
+/* ────────────────────────────────────────────
+   PROGRESS UPDATE PAGE
+───────────────────────────────────────────── */
+.pc{
+  background:var(--bg3);border:1px solid var(--line);border-radius:var(--r8);
+  padding:16px 18px;margin-bottom:10px;
+}
+.pc-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.pc-title{font-weight:700;font-size:.87rem;}
+.pc-meta{font-family:'DM Mono',monospace;font-size:.6rem;color:var(--ink3);}
+@keyframes up{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+@media(max-width:960px){
+  .stat-row,.admin-grid{grid-template-columns:1fr 1fr;}
+  .two-up{grid-template-columns:1fr;}
+  .fgrid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<!-- ══ DEMO BAR ══ -->
+<div id="dbar">
+  <span class="dbar-lbl">⚡ Demo</span>
+  <span class="dbar-sep">·</span>
+  <span style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--ink3)">Switch role:</span>
+  <button class="dbtn dbtn-emp" onclick="demoLogin('employee')">Employee</button>
+  <button class="dbtn dbtn-mgr" onclick="demoLogin('manager')">Manager</button>
+  <button class="dbtn dbtn-adm" onclick="demoLogin('admin')">Admin</button>
+  <span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--ink3)">no backend needed</span>
+</div>
+
+<!-- ══ AUTH ══ -->
+<div id="auth">
+  <div class="auth-card">
+    <div class="auth-side">
+      <div>
+        <div class="auth-wordmark">Atom<br/>Quest</div>
+        <div class="auth-sub">Performance OS</div>
+      </div>
+      <div class="auth-copy">
+        Set <strong>goals</strong> that matter.<br/>
+        Track <strong>progress</strong> in real time.<br/>
+        Get <strong>recognised</strong> for impact.
+      </div>
+      <div class="demo-section">
+        <div class="demo-tag">Try without a backend →</div>
+        <button class="dbtn dbtn-emp" onclick="demoLogin('employee')">👤 Demo as Employee</button>
+        <button class="dbtn dbtn-mgr" onclick="demoLogin('manager')">👥 Demo as Manager</button>
+        <button class="dbtn dbtn-adm" onclick="demoLogin('admin')">⚙ Demo as Admin</button>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:.58rem;color:var(--ink3)">© 2026 AtomQuest</div>
+    </div>
+
+    <div class="auth-body">
+      <div class="tab-row">
+        <button class="tab on" onclick="authTab('login')">Sign In</button>
+        <button class="tab" onclick="authTab('register')">Register</button>
+      </div>
+
+      <!-- LOGIN — POST /api/auth/login (OAuth2PasswordRequestForm) -->
+      <div id="pane-login">
+        <div class="fg"><label>Email</label><input id="l-email" type="email" placeholder="you@company.com"/></div>
+        <div class="fg"><label>Password</label><input id="l-pw" type="password" placeholder="••••••••"/></div>
+        <button class="btn btn-full" onclick="doLogin()">Sign In →</button>
+        <div class="err" id="l-err"></div>
+      </div>
+
+      <!-- REGISTER — POST /api/auth/register -->
+      <div id="pane-register" style="display:none">
+        <div class="fgrid">
+          <div class="fg"><label>Full Name</label><input id="r-name" type="text" placeholder="Priya Sharma"/></div>
+          <div class="fg"><label>Email</label><input id="r-email" type="email" placeholder="you@company.com"/></div>
+          <div class="fg"><label>Password</label><input id="r-pw" type="password" placeholder="••••••••"/></div>
+          <div class="fg"><label>Department</label><input id="r-dept" type="text" placeholder="Engineering"/></div>
+          <div class="fg">
+            <label>Role</label>
+            <select id="r-role">
+              <option value="employee">Employee</option>
+              <option value="manager">Manager</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <div class="fg"><label>Manager ID <span style="color:var(--ink3)">(optional UUID)</span></label><input id="r-mgr" type="text" placeholder="uuid-of-manager"/></div>
+        </div>
+        <button class="btn btn-full" onclick="doRegister()">Create Account →</button>
+        <div class="err" id="r-err"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app">
+  <nav class="sidebar">
+    <div class="sb-top">
+      <div class="sb-mark">A</div>
+      <div class="sb-wm">Atom<em>Quest</em></div>
+    </div>
+
+    <div class="nav-sec">
+      <div class="nav-lbl">Workspace</div>
+      <button class="nav-item on" onclick="go('dashboard')">
+        <svg class="ni" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-item" onclick="go('my-goals')">
+        <svg class="ni" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        My Goals
+      </button>
+      <button class="nav-item" onclick="go('new-goal')">
+        <svg class="ni" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Goal
+      </button>
+      <button class="nav-item" onclick="go('progress')">
+        <svg class="ni" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Update Progress
+      </button>
+    </div>
+
+    <div class="nav-sec" id="nav-manager" style="display:none">
+      <div class="nav-lbl">Manager</div>
+      <button class="nav-item" onclick="go('team-goals')">
+        <svg class="ni" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Team Goals
+      </button>
+    </div>
+
+    <div class="nav-sec" id="nav-admin" style="display:none">
+      <div class="nav-lbl">Admin</div>
+      <button class="nav-item" onclick="go('admin-dash')">
+        <svg class="ni" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Overview
+      </button>
+      <button class="nav-item" onclick="go('cycles')">
+        <svg class="ni" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.18-3.68"/></svg>
+        Cycles
+      </button>
+      <button class="nav-item" onclick="go('users')">
+        <svg class="ni" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Users
+      </button>
+    </div>
+
+    <div class="sb-footer">
+      <div class="u-av" id="u-av">?</div>
+      <div class="u-meta">
+        <div class="u-name" id="u-name">—</div>
+        <div class="u-role" id="u-role">—</div>
+      </div>
+      <button class="sb-logout" onclick="logout()" title="Log out">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- ── DASHBOARD ── -->
+    <div class="page on" id="page-dashboard">
+      <div class="page-hd">
+        <div>
+          <div class="page-title">Your <em>Dashboard</em></div>
+          <div class="page-sub" id="dash-sub">Performance overview</div>
+        </div>
+      </div>
+      <div id="demo-notice" style="display:none" class="hbar">
+        <div class="hbar-ico">🎭</div>
+        <div class="hbar-txt">You're in <strong>Demo Mode</strong> — data is local. Use the top bar to switch roles. No backend required.</div>
+      </div>
+      <div class="stat-row">
+        <div class="scard sc1"><div class="scard-lbl">Total Goals</div><div class="scard-val" id="ds-total">—</div><div class="scard-note">this cycle</div></div>
+        <div class="scard sc2"><div class="scard-lbl">Approved</div><div class="scard-val" id="ds-approved">—</div><div class="scard-note">locked in</div></div>
+        <div class="scard sc3"><div class="scard-lbl">Pending</div><div class="scard-val" id="ds-pending">—</div><div class="scard-note">awaiting review</div></div>
+        <div class="scard sc4"><div class="scard-lbl">Weightage Used</div><div class="scard-val" id="ds-weight">—</div><div class="scard-note">of 100%</div></div>
+      </div>
+      <div class="two-up">
+        <div class="card">
+          <div class="card-title"><div class="ctag" style="background:var(--lime)"></div>Recent Goals</div>
+          <div id="ds-goals"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><div class="ctag" style="background:var(--sky)"></div>Active Cycle</div>
+          <div id="ds-cycle"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MY GOALS — GET /api/goals/my-goals ── -->
+    <div class="page" id="page-my-goals">
+      <div class="page-hd">
+        <div>
+          <div class="page-title">My <em>Goals</em></div>
+          <div class="page-sub">All goals you own</div>
+        </div>
+        <button class="btn btn-sm" onclick="go('new-goal')">+ New Goal</button>
+      </div>
+      <div class="wbar">
+        <div><div class="wbar-lbl">Total Weightage</div><div class="wbar-val" id="mg-tot">0%</div></div>
+        <div class="wbar-track"><div class="wbar-fill" id="mg-fill" style="width:0%"></div></div>
+        <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--ink3);white-space:nowrap">max 100%</div>
+      </div>
+      <div id="mg-list"></div>
+    </div>
+
+    <!-- ── NEW GOAL — POST /api/goals ── -->
+    <div class="page" id="page-new-goal">
+      <div class="page-hd">
+        <div>
+          <div class="page-title">New <em>Goal</em></div>
+          <div class="page-sub">Added to the active cycle · max 8 goals · total weightage ≤ 100%</div>
+        </div>
+      </div>
+      <div class="card" style="max-width:580px">
+        <div class="fgrid">
+          <div class="fg"><label>Thrust Area</label><input id="ng-thrust" type="text" placeholder="e.g. Product Quality"/></div>
+          <div class="fg">
+            <label>Unit of Measure (UOM)</label>
+            <select id="ng-uom">
+              <option value="Numeric">Numeric</option>
+              <option value="%">Percentage (%)</option>
+              <option value="Timeline">Timeline</option>
+              <option value="Zero-based">Zero-based</option>
+            </select>
+          </div>
+          <div class="fg span2"><label>Title</label><input id="ng-title" type="text" placeholder="Short, clear goal title"/></div>
+          <div class="fg span2"><label>Description <span style="color:var(--ink3)">(optional)</span></label><textarea id="ng-desc" placeholder="Describe expected outcomes and success criteria…"></textarea></div>
+          <div class="fg"><label>Target Value</label><input id="ng-target" type="number" placeholder="100" min="0"/></div>
+          <div class="fg"><label>Weightage % <span style="color:var(--ink3)">(10–100)</span></label><input id="ng-weight" type="number" placeholder="20" min="10" max="100"/></div>
+          <div class="fg span2" style="flex-direction:row;align-items:center;gap:9px;margin-bottom:2px">
+            <input type="checkbox" id="ng-shared" style="width:auto;margin:0;accent-color:var(--lime)"/>
+            <label style="margin:0;text-transform:none;letter-spacing:0;font-size:.78rem;color:var(--ink2);font-family:'Syne',sans-serif;">Mark as shared goal</label>
+          </div>
+        </div>
+        <button class="btn btn-full" style="margin-top:4px" onclick="doCreateGoal()">Create Goal →</button>
+        <div class="err" id="ng-err"></div>
+      </div>
+    </div>
+
+    <!-- ── PROGRESS — POST /api/goals/{goal_id}/quarterly-update ── -->
+    <div class="page" id="page-progress">
+      <div class="page-hd">
+        <div>
+          <div class="page-title">Update <em>Progress</em></div>
+          <div class="page-sub">Submit quarterly achievements for approved goals</div>
+        </div>
+      </div>
+      <div id="prog-list"></div>
+    </div>
+
+    <!-- ── TEAM GOALS — GET /api/manager/team-goals + PUT /api/goals/{goal_id}/approval ── -->
+    <div class="page" id="page-team-goals">
+      <div class="page-hd">
+        <div>
+          <div class="page-title">Team <em>Goals</em></div>
+          <div class="page-sub">Review and approve your direct reports' goals</div>
+        </div>
+      </div>
+      <div id="tg-list"></div>
+    </div>
+
+    <!-- ── ADMIN OVERVIEW — GET /api/admin/all-goals + /api/admin/users + /api/cycles ── -->
+    <div class="page" id="page-admin-dash">
+      <div class="page-hd">
+        <div>
+          <div class="page-title">Platform <em>Overview</em></div>
+          <div class="page-sub">Admin-level statistics</div>
+        </div>
+      </div>
+      <div class="admin-grid">
+        <div class="acard"><div class="acard-ico">👥</div><div class="acard-val" id="ad-users">—</div><div class="acard-lbl">Users</div></div>
+        <div class="acard"><div class="acard-ico">🎯</div><div class="acard-val" id="ad-goals">—</div><div class="acard-lbl">Goals</div></div>
+        <div class="acard"><div class="acard-ico">🔄</div><div class="acard-val" id="ad-cycles">—</div><div class="acard-lbl">Cycles</div></div>
+        <div class="acard"><div class="acard-ico">📊</div><div class="acard-val" id="ad-rate">—</div><div class="acard-lbl">Approval Rate</div></div>
+      </div>
+      <div class="two-up">
+        <div class="card">
+          <div class="card-title"><div class="ctag" style="background:var(--violet)"></div>Goals by Status</div>
+          <div id="ad-status"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><div class="ctag" style="background:var(--amber)"></div>Recent Goals</div>
+          <div id="ad-recent"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CYCLES — GET /api/cycles + POST /api/cycles ── -->
+    <div class="page" id="page-cycles">
+      <div class="page-hd">
+        <div>
+          <div class="page-title">Review <em>Cycles</em></div>
+          <div class="page-sub">Manage performance review periods</div>
+        </div>
+        <button class="btn btn-sm" onclick="openCM()">+ New Cycle</button>
+      </div>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Phase</th><th>Status</th><th>Start</th><th>End</th><th>Actions</th></tr></thead>
+            <tbody id="cy-tb"><tr><td colspan="6"><div class="empty"><div class="empty-ico">⋯</div><p>Loading…</p></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── USERS — GET /api/admin/users ── -->
+    <div class="page" id="page-users">
+      <div class="page-hd">
+        <div>
+          <div class="page-title">All <em>Users</em></div>
+          <div class="page-sub">Registered accounts</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Goals</th></tr></thead>
+            <tbody id="usr-tb"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ══ CYCLE MODAL ══ -->
+<div class="overlay" id="cy-modal">
+  <div class="modal">
+    <button class="closex" onclick="closeCM()">✕</button>
+    <div class="modal-title">New Cycle</div>
+    <div class="fgrid">
+      <div class="fg"><label>Name</label><input id="cm-name" type="text" placeholder="FY2026 Q3"/></div>
+      <div class="fg">
+        <label>Phase</label>
+        <select id="cm-phase">
+          <option value="Goal Setting">Goal Setting</option>
+          <option value="Q1">Q1</option><option value="Q2">Q2</option>
+          <option value="Q3">Q3</option><option value="Q4">Q4</option>
+          <option value="Annual">Annual</option>
+        </select>
+      </div>
+      <div class="fg"><label>Start Date</label><input id="cm-start" type="date"/></div>
+      <div class="fg"><label>End Date</label><input id="cm-end" type="date"/></div>
+      <div class="fg span2" style="flex-direction:row;align-items:center;gap:9px">
+        <input type="checkbox" id="cm-active" style="width:auto;margin:0;accent-color:var(--lime)"/>
+        <label style="margin:0;text-transform:none;letter-spacing:0;font-size:.78rem;color:var(--ink2);font-family:'Syne',sans-serif;">Set as active cycle (deactivates others)</label>
+      </div>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-ghost" onclick="closeCM()">Cancel</button>
+      <button class="btn" onclick="doCreateCycle()">Create →</button>
+    </div>
+    <div class="err" id="cm-err"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONFIG — all paths match router.py prefix="/api"
+// ═══════════════════════════════════════════════════════
+const BASE = "http://65.2.146.49:8000/api";
+let token = null, me = null, demoMode = false;
+
+// ── DEMO SEED DATA ──────────────────────────────────────
+const D_USERS = {
+  employee: { id:"u-emp", name:"Priya Sharma",  email:"priya@atomquest.io", role:"employee", department:"Engineering", manager_id:"u-mgr" },
+  manager:  { id:"u-mgr", name:"Rohan Mehta",   email:"rohan@atomquest.io", role:"manager",  department:"Engineering" },
+  admin:    { id:"u-adm", name:"Admin User",     email:"admin@atomquest.io", role:"admin",    department:"Operations" },
+};
+const D_CYCLES = [
+  { id:"cyc-1", name:"FY2026 Goal Setting", phase:"Goal Setting", is_active:true,  start_date:"2026-01-01", end_date:"2026-03-31" },
+  { id:"cyc-2", name:"FY2026 Q1 Review",   phase:"Q1",           is_active:false, start_date:"2026-04-01", end_date:"2026-06-30" },
+];
+const D_GOALS = [
+  { id:"g1", title:"Ship Feature X v2",          thrust_area:"Product Delivery",  uom_type:"Timeline", target_value:1,   weightage:30, approval_status:"Approved", description:"Ship v2 to production by Q2.", locked:true,  cycle:{ name:"FY2026 Goal Setting" }, employee:{ id:"u-emp", name:"Priya Sharma" }, progress:0 },
+  { id:"g2", title:"Reduce API p99 Latency",      thrust_area:"Performance",       uom_type:"Numeric",  target_value:100, weightage:25, approval_status:"Approved", description:"Bring p99 below 100ms.",       locked:true,  cycle:{ name:"FY2026 Goal Setting" }, employee:{ id:"u-emp", name:"Priya Sharma" }, progress:60 },
+  { id:"g3", title:"AWS Solutions Architect Cert",thrust_area:"Learning & Growth", uom_type:"Timeline", target_value:1,   weightage:20, approval_status:"Pending",  description:"Pass AWS SA exam by Q3.",      locked:false, cycle:{ name:"FY2026 Goal Setting" }, employee:{ id:"u-emp", name:"Priya Sharma" }, progress:0 },
+  { id:"g4", title:"Code Review Coverage ≥95%",   thrust_area:"Quality",           uom_type:"%",        target_value:95,  weightage:15, approval_status:"Rejected",  description:"≥2 reviewers on all PRs.",    locked:false, cycle:{ name:"FY2026 Goal Setting" }, employee:{ id:"u-emp", name:"Priya Sharma" }, progress:0 },
+];
+const D_TEAM_EXTRA = [
+  { id:"g5", title:"Hire 2 Senior Engineers",  thrust_area:"Talent",     uom_type:"Numeric",  target_value:2, weightage:40, approval_status:"Pending",  description:"Recruit by Q2.", locked:false, cycle:{ name:"FY2026 Goal Setting" }, employee:{ id:"u-emp2", name:"Anika Desai" }, progress:0 },
+  { id:"g6", title:"Onboarding Revamp Launch", thrust_area:"Enablement", uom_type:"Timeline", target_value:1, weightage:25, approval_status:"Approved", description:"New hire flow.",  locked:true,  cycle:{ name:"FY2026 Goal Setting" }, employee:{ id:"u-emp3", name:"Dev Kapoor" }, progress:0 },
+];
+
+let dGoals, dCycles, dTeam, dNextId;
+function resetDemo(){
+  dGoals  = JSON.parse(JSON.stringify(D_GOALS));
+  dCycles = JSON.parse(JSON.stringify(D_CYCLES));
+  dTeam   = JSON.parse(JSON.stringify([...D_GOALS, ...D_TEAM_EXTRA]));
+  dNextId = 50;
+}
+
+// ═══════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════
+function esc(s){ return s==null?"":String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function toast(msg, type="ok"){
+  const el=document.createElement("div");
+  el.className="ti "+type;
+  const c=type==="ok"?"var(--ok)":"var(--rose)";
+  el.innerHTML=`<div class="tdot" style="background:${c}"></div>${esc(msg)}`;
+  document.getElementById("toast").appendChild(el);
+  setTimeout(()=>el.remove(),3600);
+}
+
+async function api(method, path, body=null){
+  const h={"Content-Type":"application/json"};
+  if(token) h["Authorization"]=`Bearer ${token}`;
+  const r=await fetch(BASE+path,{method,headers:h,body:body?JSON.stringify(body):null});
+  const d=await r.json();
+  if(!r.ok) throw new Error(d.detail||r.statusText);
+  // router wraps everything in {success, message, data}
+  return d.data !== undefined ? d.data : d;
+}
+
+// Login uses OAuth2PasswordRequestForm — multipart form, not JSON
+async function apiLogin(email, pw){
+  const fd=new FormData();
+  fd.append("username", email);   // FastAPI OAuth2 expects "username"
+  fd.append("password", pw);
+  const r=await fetch(BASE+"/auth/login",{method:"POST",body:fd});
+  const d=await r.json();
+  if(!r.ok) throw new Error(d.detail||r.statusText);
+  return d.data;
+}
+
+function statusColor(s){ return {Approved:"var(--ok)",Rejected:"var(--rose)",Pending:"var(--violet)"}[s]||"var(--ink3)"; }
+function statusChip(s){
+  const cls={Approved:"ch-ok",Rejected:"ch-rej",Pending:"ch-pen"}[s]||"";
+  return `<span class="chip ${cls}">${esc(s)||"—"}</span>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// DEMO LOGIN
+// ═══════════════════════════════════════════════════════
+function demoLogin(role){
+  demoMode=true; resetDemo();
+  me={...D_USERS[role]};
+  document.getElementById("dbar").style.display="flex";
+  document.getElementById("auth").style.display="none";
+  document.getElementById("app").style.display="block";
+  document.getElementById("app").classList.add("dm");
+  document.getElementById("demo-notice").style.display="flex";
+  setupSidebar();
+  renderDash(dGoals, dCycles);
+  go("dashboard");
+  toast(`Demo — signed in as ${me.name} (${role})`);
+}
+
+// ═══════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════
+function authTab(t){
+  document.querySelectorAll(".tab").forEach((b,i)=>b.classList.toggle("on",(i===0&&t==="login")||(i===1&&t==="register")));
+  document.getElementById("pane-login").style.display=t==="login"?"block":"none";
+  document.getElementById("pane-register").style.display=t==="register"?"block":"none";
+}
+
+async function doLogin(){
+  const email=document.getElementById("l-email").value.trim();
+  const pw=document.getElementById("l-pw").value;
+  document.getElementById("l-err").textContent="";
+  if(!email||!pw){document.getElementById("l-err").textContent="Fill all fields.";return;}
+  try{
+    const d=await apiLogin(email,pw);
+    token=d.access_token;
+    sessionStorage.setItem("aq_tok",token);
+    await boot();
+  }catch(e){document.getElementById("l-err").textContent=e.message;}
+}
+
+async function doRegister(){
+  const name=document.getElementById("r-name").value.trim();
+  const email=document.getElementById("r-email").value.trim();
+  const pw=document.getElementById("r-pw").value;
+  const dept=document.getElementById("r-dept").value.trim();
+  const role=document.getElementById("r-role").value;
+  const mgr=document.getElementById("r-mgr").value.trim();
+  document.getElementById("r-err").textContent="";
+  if(!name||!email||!pw||!dept){document.getElementById("r-err").textContent="Fill required fields.";return;}
+  try{
+    const body={name,email,password:pw,department:dept,role};
+    if(mgr) body.manager_id=mgr;
+    await api("POST","/auth/register",body);  // POST /api/auth/register
+    toast("Account created — sign in now.");
+    authTab("login");
+  }catch(e){document.getElementById("r-err").textContent=e.message;}
+}
+
+function logout(){
+  token=null;me=null;demoMode=false;
+  sessionStorage.removeItem("aq_tok");
+  document.getElementById("app").style.display="none";
+  document.getElementById("app").classList.remove("dm");
+  document.getElementById("auth").style.display="flex";
+  document.getElementById("dbar").style.display="none";
+  document.getElementById("demo-notice").style.display="none";
+  toast("Signed out.");
+}
+
+// ═══════════════════════════════════════════════════════
+// BOOT (real backend)
+// ═══════════════════════════════════════════════════════
+function setupSidebar(){
+  document.getElementById("u-name").textContent=me.name;
+  document.getElementById("u-role").textContent=me.role;
+  document.getElementById("u-av").textContent=me.name[0].toUpperCase();
+  document.getElementById("u-role").className=`u-role r-${me.role}`;
+  document.getElementById("nav-manager").style.display=me.role==="manager"?"block":"none";
+  document.getElementById("nav-admin").style.display=me.role==="admin"?"block":"none";
+}
+
+async function boot(){
+  try{
+    me=await api("GET","/me");            // GET /api/me
+    const [goals,cycles]=await Promise.all([
+      api("GET","/goals/my-goals"),       // GET /api/goals/my-goals
+      api("GET","/cycles").catch(()=>[]), // GET /api/cycles
+    ]);
+    setupSidebar();
+    document.getElementById("auth").style.display="none";
+    document.getElementById("app").style.display="block";
+    renderDash(goals,cycles);
+    go("dashboard");
+    toast(`Welcome back, ${me.name}!`);
+  }catch(e){
+    document.getElementById("l-err").textContent=e.message;
+    token=null;sessionStorage.removeItem("aq_tok");
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════
+function go(page){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("on"));
+  const pg=document.getElementById("page-"+page);
+  if(!pg) return;
+  pg.classList.add("on");
+  document.querySelectorAll(".nav-item").forEach(n=>{
+    if(n.getAttribute("onclick")?.includes(`'${page}'`)) n.classList.add("on");
+  });
+  const loaders={
+    "my-goals":    loadMyGoals,
+    "progress":    loadProgress,
+    "team-goals":  loadTeamGoals,
+    "admin-dash":  loadAdminDash,
+    "cycles":      loadCycles,
+    "users":       loadUsers,
+  };
+  if(loaders[page]) loaders[page]();
+}
+
+// ═══════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════
+function renderDash(goals, cycles){
+  document.getElementById("ds-total").textContent=goals.length;
+  document.getElementById("ds-approved").textContent=goals.filter(g=>g.approval_status==="Approved").length;
+  document.getElementById("ds-pending").textContent=goals.filter(g=>g.approval_status==="Pending").length;
+  document.getElementById("ds-weight").textContent=goals.reduce((s,g)=>s+(g.weightage||0),0)+"%";
+
+  const gEl=document.getElementById("ds-goals");
+  if(!goals.length){gEl.innerHTML='<div class="empty"><div class="empty-ico">◎</div><p>No goals yet</p></div>';return;}
+  gEl.innerHTML=goals.slice(0,3).reverse().map(g=>`
+    <div style="padding:9px 0;border-bottom:1px solid var(--line)">
+      <div style="font-weight:700;font-size:.84rem;margin-bottom:5px">${esc(g.title)}</div>
+      <div class="chips">
+        <span class="chip">${esc(g.thrust_area)}</span>
+        ${statusChip(g.approval_status)}
+        <span class="chip ch-lime">${g.weightage}%</span>
+      </div>
+    </div>`).join("");
+
+  const cEl=document.getElementById("ds-cycle");
+  const active=Array.isArray(cycles)?cycles.find(c=>c.is_active):null;
+  if(!active){cEl.innerHTML='<div class="empty"><div class="empty-ico">◌</div><p>No active cycle</p></div>';return;}
+  cEl.innerHTML=`
+    <div style="padding:12px 0">
+      <div style="font-weight:700;font-size:.94rem;margin-bottom:9px">${esc(active.name)}</div>
+      <div class="chips">
+        <span class="chip ch-sky">${esc(active.phase)}</span>
+        <span class="badge b-on"><div class="bdot" style="background:var(--ok)"></div>Active</span>
+      </div>
+      ${active.start_date?`<div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--ink3);margin-top:11px">${active.start_date} → ${active.end_date||"ongoing"}</div>`:""}
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// MY GOALS  GET /api/goals/my-goals
+// ═══════════════════════════════════════════════════════
+async function loadMyGoals(){
+  document.getElementById("mg-list").innerHTML='<div class="empty"><div class="empty-ico">⋯</div><p>Loading…</p></div>';
+  if(demoMode){renderMyGoals(dGoals);return;}
+  try{renderMyGoals(await api("GET","/goals/my-goals"));}
+  catch(e){toast(e.message,"er");}
+}
+
+function renderMyGoals(goals){
+  const w=goals.reduce((s,g)=>s+(g.weightage||0),0);
+  document.getElementById("mg-tot").textContent=w+"%";
+  const pct=Math.min(w,100);
+  const f=document.getElementById("mg-fill");
+  f.style.width=pct+"%";
+  f.style.background=pct>=100?"var(--rose)":pct>=70?"var(--lime)":"var(--sky)";
+
+  const el=document.getElementById("mg-list");
+  if(!goals.length){el.innerHTML='<div class="empty"><div class="empty-ico">◎</div><p>No goals — create one!</p></div>';return;}
+  el.innerHTML=goals.map(g=>`
+    <div class="goal-card">
+      <div class="g-dot" style="background:${statusColor(g.approval_status)}"></div>
+      <div class="g-body">
+        <div class="g-title">${esc(g.title)}</div>
+        <div class="g-desc">${esc(g.description||"No description")}</div>
+        <div class="chips">
+          <span class="chip">${esc(g.thrust_area)}</span>
+          <span class="chip ch-sky">${esc(g.uom_type)}</span>
+          <span class="chip ch-amber">Target: ${g.target_value}</span>
+          <span class="chip ch-lime">${g.weightage}%</span>
+          ${statusChip(g.approval_status)}
+          ${g.locked?'<span class="chip ch-rej">🔒 Locked</span>':""}
+        </div>
+        <div class="pg">
+          <div class="pg-row"><span>Progress</span><span>${g.progress!=null?g.progress:0}%</span></div>
+          <div class="pg-track"><div class="pg-fill" style="width:${Math.min(g.progress||0,100)}%"></div></div>
+        </div>
+      </div>
+    </div>`).join("");
+}
+
+// ═══════════════════════════════════════════════════════
+// NEW GOAL  POST /api/goals
+// Body: { thrust_area, title, description, uom_type, target_value, weightage, is_shared }
+// ═══════════════════════════════════════════════════════
+async function doCreateGoal(){
+  const thrust_area =document.getElementById("ng-thrust").value.trim();
+  const uom_type    =document.getElementById("ng-uom").value;
+  const title       =document.getElementById("ng-title").value.trim();
+  const description =document.getElementById("ng-desc").value.trim();
+  const target_value=parseFloat(document.getElementById("ng-target").value);
+  const weightage   =parseFloat(document.getElementById("ng-weight").value);
+  const is_shared   =document.getElementById("ng-shared").checked;
+  const err         =document.getElementById("ng-err");
+  err.textContent="";
+
+  if(!thrust_area||!title||isNaN(target_value)||isNaN(weightage)){err.textContent="Fill all required fields.";return;}
+  if(weightage<10||weightage>100){err.textContent="Weightage must be 10–100.";return;}
+
+  if(demoMode){
+    const used=dGoals.reduce((s,g)=>s+g.weightage,0);
+    if(used+weightage>100){err.textContent=`Would exceed 100% total (currently ${used}%).`;return;}
+    if(dGoals.length>=8){err.textContent="Maximum 8 goals allowed.";return;}
+    const ng={
+      id:"g"+(++dNextId),title,thrust_area,uom_type,description,target_value,weightage,
+      is_shared,approval_status:"Pending",locked:false,
+      cycle:{name:"FY2026 Goal Setting"},employee:{id:me.id,name:me.name},progress:0
+    };
+    dGoals.push(ng);
+    dTeam.push({...ng});
+    toast("Goal created! (demo)");
+    ["ng-thrust","ng-title","ng-desc","ng-target","ng-weight"].forEach(id=>document.getElementById(id).value="");
+    document.getElementById("ng-shared").checked=false;
+    go("my-goals");
+    return;
+  }
+  try{
+    await api("POST","/goals",{thrust_area,uom_type,title,description,target_value,weightage,is_shared});
+    toast("Goal created!");
+    ["ng-thrust","ng-title","ng-desc","ng-target","ng-weight"].forEach(id=>document.getElementById(id).value="");
+    document.getElementById("ng-shared").checked=false;
+    go("my-goals");
+  }catch(e){err.textContent=e.message;}
+}
+
+// ═══════════════════════════════════════════════════════
+// PROGRESS  POST /api/goals/{goal_id}/quarterly-update
+// Body: { quarter, planned_target, actual_achievement, progress_status, employee_comment }
+// ═══════════════════════════════════════════════════════
+async function loadProgress(){
+  const el=document.getElementById("prog-list");
+  el.innerHTML='<div class="empty"><div class="empty-ico">⋯</div><p>Loading…</p></div>';
+  let goals;
+  if(demoMode){
+    goals=dGoals.filter(g=>g.approval_status==="Approved");
+  }else{
+    try{
+      const all=await api("GET","/goals/my-goals");
+      goals=all.filter(g=>g.approval_status==="Approved");
+    }catch(e){el.innerHTML=`<div class="empty"><div class="empty-ico">⚠</div><p>${esc(e.message)}</p></div>`;return;}
+  }
+  if(!goals.length){el.innerHTML='<div class="empty"><div class="empty-ico">◎</div><p>No approved goals to update yet.</p></div>';return;}
+
+  const QS=["Q1","Q2","Q3","Q4"];
+  const STS=["On Track","At Risk","Completed","Not Started"];
+
+  el.innerHTML=goals.map(g=>`
+    <div class="pc" id="pc-${g.id}">
+      <div class="pc-hd">
+        <div>
+          <div class="pc-title">${esc(g.title)}</div>
+          <div class="pc-meta">${esc(g.cycle?.name||"—")} · Target: ${g.target_value} ${g.uom_type}</div>
+        </div>
+        ${statusChip(g.approval_status)}
+      </div>
+      <div class="pg" style="margin-bottom:13px">
+        <div class="pg-row"><span>Completion</span><span id="pval-${g.id}">${g.progress||0}%</span></div>
+        <div class="pg-track"><div class="pg-fill" id="pbar-${g.id}" style="width:${g.progress||0}%"></div></div>
+      </div>
+      <div class="fgrid">
+        <div class="fg"><label>Quarter</label><select id="pq-${g.id}">${QS.map(q=>`<option value="${q}">${q}</option>`).join("")}</select></div>
+        <div class="fg"><label>Progress Status</label><select id="ps-${g.id}">${STS.map(s=>`<option value="${s}">${s}</option>`).join("")}</select></div>
+        <div class="fg"><label>Planned Target</label><input type="number" id="ppt-${g.id}" placeholder="${g.target_value}" min="0"/></div>
+        <div class="fg"><label>Actual Achievement</label><input type="number" id="paa-${g.id}" placeholder="0" min="0"/></div>
+        <div class="fg span2"><label>Employee Comment <span style="color:var(--ink3)">(optional)</span></label><textarea id="pco-${g.id}" placeholder="Notes on this quarter's progress…" style="min-height:48px"></textarea></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:4px">
+        <button class="btn btn-sm" onclick="saveProgress('${g.id}')">Submit →</button>
+      </div>
+      <div class="err" id="perr-${g.id}"></div>
+    </div>`).join("");
+}
+
+async function saveProgress(id){
+  const quarter            =document.getElementById("pq-"+id).value;
+  const progress_status    =document.getElementById("ps-"+id).value;
+  const planned_target     =parseFloat(document.getElementById("ppt-"+id).value);
+  const actual_achievement =parseFloat(document.getElementById("paa-"+id).value);
+  const employee_comment   =document.getElementById("pco-"+id).value.trim()||undefined;
+  const errEl              =document.getElementById("perr-"+id);
+  errEl.textContent="";
+  if(isNaN(planned_target)||isNaN(actual_achievement)){errEl.textContent="Enter planned target and actual achievement.";return;}
+  if(planned_target<=0){errEl.textContent="Planned target must be > 0.";return;}
+
+  if(demoMode){
+    const pct=Math.round(Math.min((actual_achievement/planned_target)*100,100));
+    const g=dGoals.find(g=>g.id===id);
+    if(g) g.progress=pct;
+    document.getElementById("pval-"+id).textContent=pct+"%";
+    document.getElementById("pbar-"+id).style.width=pct+"%";
+    toast(`${quarter} update saved — ${pct}% completion (demo)`);
+    return;
+  }
+  try{
+    // POST /api/goals/{goal_id}/quarterly-update
+    await api("POST",`/goals/${id}/quarterly-update`,{
+      quarter,progress_status,planned_target,actual_achievement,employee_comment
+    });
+    const pct=Math.round(Math.min((actual_achievement/planned_target)*100,100));
+    document.getElementById("pval-"+id).textContent=pct+"%";
+    document.getElementById("pbar-"+id).style.width=pct+"%";
+    toast(`${quarter} update submitted!`);
+  }catch(e){errEl.textContent=e.message;}
+}
+
+// ═══════════════════════════════════════════════════════
+// TEAM GOALS  GET /api/manager/team-goals
+// APPROVE     PUT /api/goals/{goal_id}/approval
+// Body: { approval_status: "Approved"|"Rejected" }
+// ═══════════════════════════════════════════════════════
+async function loadTeamGoals(){
+  document.getElementById("tg-list").innerHTML='<div class="empty"><div class="empty-ico">⋯</div><p>Loading…</p></div>';
+  if(demoMode){renderTeamGoals(dTeam);return;}
+  try{renderTeamGoals(await api("GET","/manager/team-goals"));}
+  catch(e){document.getElementById("tg-list").innerHTML=`<div class="empty"><div class="empty-ico">⚠</div><p>${esc(e.message)}</p></div>`;}
+}
+
+function renderTeamGoals(goals){
+  const el=document.getElementById("tg-list");
+  if(!goals.length){el.innerHTML='<div class="empty"><div class="empty-ico">◎</div><p>No team goals found.</p></div>';return;}
+  el.innerHTML=goals.map(g=>`
+    <div class="goal-card">
+      <div class="g-dot" style="background:${statusColor(g.approval_status)}"></div>
+      <div class="g-body" style="flex:1">
+        <div class="g-title">${esc(g.title)}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--sky);margin-bottom:5px">${esc(g.employee?.name||"Unknown")}</div>
+        <div class="g-desc">${esc(g.description||"—")}</div>
+        <div class="chips">
+          <span class="chip">${esc(g.thrust_area)}</span>
+          <span class="chip ch-sky">${esc(g.uom_type)}</span>
+          <span class="chip ch-amber">${esc(g.cycle?.name||"No cycle")}</span>
+          <span class="chip ch-lime">${g.weightage}%</span>
+          ${statusChip(g.approval_status)}
+          ${g.locked?'<span class="chip ch-rej">🔒</span>':""}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0;align-self:center;margin-left:12px">
+        ${g.approval_status!=="Approved"?`<button class="btn btn-sm btn-ok" onclick="approveGoal('${g.id}','Approved')">✓ Approve</button>`:""}
+        ${g.approval_status!=="Rejected"?`<button class="btn btn-sm btn-bad" onclick="approveGoal('${g.id}','Rejected')">✕ ${g.approval_status==="Approved"?"Revoke":"Reject"}</button>`:""}
+      </div>
+    </div>`).join("");
+}
+
+async function approveGoal(id, approval_status){
+  if(demoMode){
+    [dTeam,dGoals].forEach(arr=>{
+      const g=arr.find(g=>g.id===id);
+      if(g){ g.approval_status=approval_status; g.locked=approval_status==="Approved"; }
+    });
+    toast(`Goal ${approval_status.toLowerCase()}. (demo)`);
+    renderTeamGoals(dTeam);
+    return;
+  }
+  try{
+    await api("PUT",`/goals/${id}/approval`,{approval_status}); // PUT /api/goals/{goal_id}/approval
+    toast(`Goal ${approval_status.toLowerCase()}.`);
+    loadTeamGoals();
+  }catch(e){toast(e.message,"er");}
+}
+
+// ═══════════════════════════════════════════════════════
+// ADMIN DASH  GET /api/admin/all-goals + /api/admin/users + /api/cycles
+// ═══════════════════════════════════════════════════════
+async function loadAdminDash(){
+  if(demoMode){
+    const goals=dTeam;
+    const approved=goals.filter(g=>g.approval_status==="Approved").length;
+    const pending =goals.filter(g=>g.approval_status==="Pending").length;
+    const rejected=goals.filter(g=>g.approval_status==="Rejected").length;
+    const total=goals.length||1;
+    document.getElementById("ad-users").textContent=Object.keys(D_USERS).length;
+    document.getElementById("ad-goals").textContent=goals.length;
+    document.getElementById("ad-cycles").textContent=dCycles.length;
+    document.getElementById("ad-rate").textContent=Math.round(approved/total*100)+"%";
+    renderStatusBars({approved,pending,rejected,total});
+    document.getElementById("ad-recent").innerHTML=goals.slice(0,5).map(g=>`
+      <div style="padding:8px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:.82rem;font-weight:600">${esc(g.title)}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--ink3);margin-top:2px">${esc(g.employee?.name||"—")} · ${esc(g.cycle?.name||"—")}</div>
+        </div>
+        ${statusChip(g.approval_status)}
+      </div>`).join("");
+    return;
+  }
+  try{
+    const [goals,users,cycles]=await Promise.all([
+      api("GET","/admin/all-goals"),   // GET /api/admin/all-goals
+      api("GET","/admin/users"),       // GET /api/admin/users
+      api("GET","/cycles"),            // GET /api/cycles
+    ]);
+    const approved=goals.filter(g=>g.approval_status==="Approved").length;
+    const pending =goals.filter(g=>g.approval_status==="Pending").length;
+    const rejected=goals.filter(g=>g.approval_status==="Rejected").length;
+    const total=goals.length||1;
+    document.getElementById("ad-users").textContent=users.length;
+    document.getElementById("ad-goals").textContent=goals.length;
+    document.getElementById("ad-cycles").textContent=cycles.length;
+    document.getElementById("ad-rate").textContent=Math.round(approved/total*100)+"%";
+    renderStatusBars({approved,pending,rejected,total});
+    document.getElementById("ad-recent").innerHTML=goals.slice(0,5).map(g=>`
+      <div style="padding:8px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:.82rem;font-weight:600">${esc(g.title)}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--ink3);margin-top:2px">${esc(g.employee?.name||"—")} · ${esc(g.cycle?.name||"—")}</div>
+        </div>
+        ${statusChip(g.approval_status)}
+      </div>`).join("")||'<div class="empty"><div class="empty-ico">◌</div><p>No goals yet</p></div>';
+  }catch(e){toast(e.message,"er");}
+}
+
+function renderStatusBars({approved,pending,rejected,total}){
+  document.getElementById("ad-status").innerHTML=
+    [["Approved",approved,"var(--ok)"],["Pending",pending,"var(--violet)"],["Rejected",rejected,"var(--rose)"]].map(([lbl,val,col])=>`
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:.65rem;margin-bottom:4px">
+          <span style="color:${col}">${lbl}</span><span style="color:var(--ink3)">${val}</span>
+        </div>
+        <div class="pg-track" style="height:3px"><div class="pg-fill" style="width:${(val/total*100).toFixed(1)}%;background:${col}"></div></div>
+      </div>`).join("");
+}
+
+// ═══════════════════════════════════════════════════════
+// CYCLES  GET /api/cycles + POST /api/cycles
+// ═══════════════════════════════════════════════════════
+async function loadCycles(){
+  document.getElementById("cy-tb").innerHTML='<tr><td colspan="6"><div class="empty" style="padding:18px"><div class="empty-ico">⋯</div><p>Loading…</p></div></td></tr>';
+  if(demoMode){renderCycles(dCycles);return;}
+  try{
+    renderCycles(await api("GET","/cycles")); // GET /api/cycles
+  }catch(e){
+    document.getElementById("cy-tb").innerHTML=`<tr><td colspan="6" style="text-align:center;color:var(--rose);padding:20px;font-family:'DM Mono',monospace;font-size:.72rem">${esc(e.message)}</td></tr>`;
+  }
+}
+
+function renderCycles(cycles){
+  const tb=document.getElementById("cy-tb");
+  if(!cycles.length){tb.innerHTML='<tr><td colspan="6"><div class="empty"><div class="empty-ico">◌</div><p>No cycles yet</p></div></td></tr>';return;}
+  tb.innerHTML=cycles.map(c=>`
+    <tr>
+      <td style="font-weight:700">${esc(c.name)}</td>
+      <td><span class="chip ch-sky">${esc(c.phase)}</span></td>
+      <td>
+        <span class="badge ${c.is_active?"b-on":"b-off"}">
+          <div class="bdot" style="background:${c.is_active?"var(--ok)":"var(--ink3)"}"></div>
+          ${c.is_active?"Active":"Inactive"}
+        </span>
+      </td>
+      <td style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--ink3)">${c.start_date||"—"}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--ink3)">${c.end_date||"—"}</td>
+      <td>
+        ${demoMode&&!c.is_active?`<button class="btn btn-sm" onclick="setActiveDemoCycle('${c.id}')">Set Active</button>`:""}
+        ${demoMode&&c.is_active?`<span style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--ink3)">Current</span>`:""}
+      </td>
+    </tr>`).join("");
+}
+
+function setActiveDemoCycle(id){
+  dCycles.forEach(c=>c.is_active=c.id===id);
+  toast("Active cycle updated. (demo)");
+  renderCycles(dCycles);
+  renderDash(dGoals,dCycles);
+}
+
+function openCM(){document.getElementById("cy-modal").classList.add("open");}
+function closeCM(){document.getElementById("cy-modal").classList.remove("open");document.getElementById("cm-err").textContent="";}
+
+async function doCreateCycle(){
+  const name      =document.getElementById("cm-name").value.trim();
+  const phase     =document.getElementById("cm-phase").value;
+  const start_date=document.getElementById("cm-start").value||undefined;
+  const end_date  =document.getElementById("cm-end").value||undefined;
+  const is_active =document.getElementById("cm-active").checked;
+  document.getElementById("cm-err").textContent="";
+  if(!name){document.getElementById("cm-err").textContent="Name is required.";return;}
+
+  if(demoMode){
+    if(is_active) dCycles.forEach(c=>c.is_active=false);
+    dCycles.unshift({id:"cyc-"+(++dNextId),name,phase,is_active,start_date:start_date||null,end_date:end_date||null});
+    toast("Cycle created! (demo)");
+    closeCM();
+    loadCycles();
+    return;
+  }
+  try{
+    await api("POST","/cycles",{name,phase,is_active,start_date,end_date}); // POST /api/cycles
+    toast("Cycle created!");
+    closeCM();
+    loadCycles();
+  }catch(e){document.getElementById("cm-err").textContent=e.message;}
+}
+
+// ═══════════════════════════════════════════════════════
+// USERS  GET /api/admin/users
+// ═══════════════════════════════════════════════════════
+async function loadUsers(){
+  const tb=document.getElementById("usr-tb");
+  if(demoMode){
+    const all=Object.values(D_USERS);
+    const gc={"u-emp":D_GOALS.length,"u-mgr":0,"u-adm":0};
+    tb.innerHTML=all.map(u=>`
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:9px">
+            <div style="width:26px;height:26px;border-radius:50%;background:var(--lime);color:#0a0b0e;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.72rem;flex-shrink:0">${u.name[0]}</div>
+            <span style="font-weight:700">${esc(u.name)}</span>
+          </div>
+        </td>
+        <td style="font-family:'DM Mono',monospace;font-size:.7rem;color:var(--ink3)">${esc(u.email)}</td>
+        <td><span class="u-role r-${u.role}" style="font-family:'DM Mono',monospace;font-size:.65rem;font-weight:600;letter-spacing:.5px">${u.role}</span></td>
+        <td style="color:var(--ink2)">${esc(u.department)}</td>
+        <td><span class="chip ch-lime">${gc[u.id]||0}</span></td>
+      </tr>`).join("");
+    return;
+  }
+  tb.innerHTML='<tr><td colspan="5"><div class="empty"><div class="empty-ico">🔌</div><p>Connect backend to see users.</p></div></td></tr>';
+  try{
+    const users=await api("GET","/admin/users"); // GET /api/admin/users
+    tb.innerHTML=users.map(u=>`
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:9px">
+            <div style="width:26px;height:26px;border-radius:50%;background:var(--lime);color:#0a0b0e;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.72rem;flex-shrink:0">${u.name[0]}</div>
+            <span style="font-weight:700">${esc(u.name)}</span>
+          </div>
+        </td>
+        <td style="font-family:'DM Mono',monospace;font-size:.7rem;color:var(--ink3)">${esc(u.email)}</td>
+        <td><span class="u-role r-${u.role}" style="font-family:'DM Mono',monospace;font-size:.65rem;font-weight:600;letter-spacing:.5px">${u.role}</span></td>
+        <td style="color:var(--ink2)">${esc(u.department)}</td>
+        <td><span class="chip ch-lime">${u.goal_count||0}</span></td>
+      </tr>`).join("")||'<tr><td colspan="5"><div class="empty"><div class="empty-ico">◌</div><p>No users</p></div></td></tr>';
+  }catch(e){toast(e.message,"er");}
+}
+
+// ═══════════════════════════════════════════════════════
+// SESSION RESTORE
+// ═══════════════════════════════════════════════════════
+window.addEventListener("DOMContentLoaded",()=>{
+  const t=sessionStorage.getItem("aq_tok");
+  if(t){token=t;boot();}
+});
+</script>
+</body>
+</html>
